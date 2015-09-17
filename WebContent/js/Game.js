@@ -1,6 +1,17 @@
-var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'game', this);
+/**
+ * Game state.
+ */
+function Game() {
+	Phaser.State.call(this);
+	// TODO: generated method.
+}
 
-//  Game Panel
+/** @type Phaser.State */
+var proto = Object.create(Phaser.State);
+Game.prototype = proto;
+
+
+//Game Panel
 var canvasGrid;
 
 var blockSize = 38;
@@ -12,22 +23,22 @@ var blockColor = 0x26231c;
 var baffleplates = [];
 var baffleplateColor = 0xd6ad81;
 
-function create() {
-    game.stage.backgroundColor = '#3f5c67';
-
-    creatGamePanel();
-    createBafflePlates();
-
+Game.prototype.preload = function() {
+	// TODO: generated method.
 };
 
-function render() {
-
+Game.prototype.create = function() {
+    this.creatGamePanel();
+    this.createBafflePlates();
 };
 
+Game.prototype.update = function() {
+	// TODO: generated method.
+	
+};
 
-function creatGamePanel() {
-    var graphics = game.add.graphics(0, 0);
-
+Game.prototype.creatGamePanel = function() {
+    var graphics = this.add.graphics(0, 0);
 
     graphics.lineStyle(0, blockColor, 0);
 
@@ -58,31 +69,31 @@ function creatGamePanel() {
     graphics.drawRect(2 * blockSize, 2 * blockSize + blockGap, blockGap, 5 * (blockSize + blockGap));
     graphics.endFill();
 
-    var sprite = game.add.sprite(0, 0, graphics.generateTexture());
+    var sprite = this.add.sprite(0, 0, graphics.generateTexture());
 
-    sprite = game.add.sprite(panelSize, panelSize, graphics.generateTexture());
+    sprite = this.add.sprite(panelSize, panelSize, graphics.generateTexture());
     sprite.scale.x *= -1;
     sprite.scale.y *= -1;
 
-    sprite = game.add.sprite(0, panelSize, graphics.generateTexture());
+    sprite = this.add.sprite(0, panelSize, graphics.generateTexture());
     sprite.scale.x *= 1;
     sprite.scale.y *= -1;
 
-    sprite = game.add.sprite(panelSize, 0, graphics.generateTexture());
+    sprite = this.add.sprite(panelSize, 0, graphics.generateTexture());
     sprite.scale.x *= -1;
     sprite.scale.y *= 1;
 
     graphics.destroy();
 };
 
-function createBafflePlates() {
-    var graphics = game.add.graphics(0, 0);
+Game.prototype.createBafflePlates = function() {
+    var graphics = this.add.graphics(0, 0);
     var length = 2 * blockSize + blockGap;
     graphics.beginFill(baffleplateColor);
     graphics.drawRect(0, 2 * blockSize, length, blockGap);
     graphics.endFill();
     for (var i = 0; i < 20; i++) {
-        var sprite = game.add.sprite(0, 0, graphics.generateTexture());
+        var sprite = this.add.sprite(0, 0, graphics.generateTexture());
 
         if (i >= 10) {
             sprite.x = panelSize - length;
