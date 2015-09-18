@@ -15,9 +15,10 @@ Menu.prototype.preload = function() {
 
 Menu.prototype.create = function() {
 	// TODO Just for test
-	this.startBtn = this.add.text(this.world.centerX, this.world.centerY, "Start", { font: "28px Arial", fill: "#ff0044", align: "center" });
-	this.startBtn.inputEnabled = true;
-	this.startBtn.events.onInputDown.add(this.startGame, this);
+	this.startGame();
+//	this.startBtn = this.add.text(this.world.centerX, this.world.centerY, "Start", { font: "28px Arial", fill: "#ff0044", align: "center" });
+//	this.startBtn.inputEnabled = true;
+//	this.startBtn.events.onInputDown.add(this.startGame, this);
 };
 
 Menu.prototype.startGame = function() {
