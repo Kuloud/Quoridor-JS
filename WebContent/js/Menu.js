@@ -22,6 +22,6 @@ Menu.prototype.create = function() {
 };
 
 Menu.prototype.startGame = function() {
-	this.game.state.start("Game");
+	this.game.state.start("Game", true, false, 4);
 };
 
