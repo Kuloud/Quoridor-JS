@@ -16,15 +16,30 @@ var blockGap = 8;
 var panelSize = blockSize * 13 + blockGap * 10;
 
 var blockColor = 0x26231c;
-var blocks = [ 9 ][9];
 
 var baffleplates = [];
 var baffleplateHint;
 var baffleplateColor = 0xd6ad81;
 
 // Player
+var playerCount;
 var players = [];
 var currentIdx = -1;
+
+// Logic
+
+var plates = [ [ null, null, null, null, null, null, null, null ],
+		[ null, null, null, null, null, null, null, null ],
+		[ null, null, null, null, null, null, null, null ],
+		[ null, null, null, null, null, null, null, null ],
+		[ null, null, null, null, null, null, null, null ],
+		[ null, null, null, null, null, null, null, null ],
+		[ null, null, null, null, null, null, null, null ],
+		[ null, null, null, null, null, null, null, null ] ];
+
+Game.prototype.init = function(count) {
+	playerCount = count;
+};
 
 Game.prototype.preload = function() {
 	// TODO: generated method.
@@ -33,7 +48,7 @@ Game.prototype.preload = function() {
 Game.prototype.create = function() {
 	this.creatGamePanel();
 	this.createBafflePlates();
-	this.initPlayers(4);
+	this.initPlayers(playerCount);
 	this.input.addMoveCallback(this.onMouseMoveCb, this);
 	// Start the game
 	this.turnPlayer();
@@ -43,7 +58,7 @@ Game.prototype.update = function() {
 };
 
 Game.prototype.render = function() {
-	this.game.debug.inputInfo(32, 32);
+	// this.game.debug.inputInfo(32, 32);
 }
 
 // -----------------------------------------------
@@ -110,10 +125,12 @@ Game.prototype.createBafflePlates = function() {
 
 		if (i >= 10) {
 			sprite.x = panelSize - length / 2;
-			sprite.y = 2 * blockSize + blockGap / 2 + (19 - i) * (blockSize + blockGap);
+			sprite.y = 2 * blockSize + blockGap / 2 + (19 - i)
+					* (blockSize + blockGap);
 		} else {
 			sprite.x = length / 2;
-			sprite.y = 2 * blockSize + blockGap / 2 + i * (blockSize + blockGap);
+			sprite.y = 2 * blockSize + blockGap / 2 + i
+					* (blockSize + blockGap);
 		}
 
 		baffleplates.push(sprite);
@@ -189,14 +206,78 @@ Game.prototype.turnPlayer = function() {
 	players[currentIdx].startHint();
 }
 
+Game.prototype.checkWin = function() {
+	var r = false;
+	switch (currentIdx) {
+	case 0:
+		r = players[currentIdx].x == 8;
+		break;
+	case 1:
+		r = players[currentIdx].x == 0;
+		break;
+	case 2:
+		r = players[currentIdx].y == 8;
+		break;
+	case 3:
+		r = players[currentIdx].y == 0;
+		break;
+
+	default:
+		break;
+	}
+	return r;
+}
+
 // -----------------------------------------------
 Game.prototype.onMouseMoveCb = function(pointer, x, y) {
 	if (this.calcInGamePanel(x, y)) {
-		if (this.calcInGap(x, y)) {
-			baffleplateHint.visible = true;
-			baffleplateHint.tint = players[currentIdx].color;
-		} else {
-			baffleplateHint.visible = false;
+		if (players[currentIdx].baffleplates.length > 0) {
+			var p = this.calcNearestCross(x, y);
+			if ((this.calcInGap(x, y) || this.calcInGapCross(x, y))
+					&& this.calcPlateValid(p)) {
+				if (this.calcInGap(x, y)) {
+					// debugger
+					p.setupPlate(baffleplateHint);
+					baffleplateHint.visible = true;
+					baffleplateHint.tint = players[currentIdx].color;
+				} else if (!this.calcInGapCross(x, y)) {
+					baffleplateHint.visible = false;
+				}
+				if (pointer.isDown && baffleplateHint.visible) {
+					// debugger
+					players[currentIdx].stopHint();
+					var baffleplate = players[currentIdx].baffleplates.pop();
+					p.setupPlate(baffleplate);
+					var offset = 2 * blockSize + blockGap / 2;
+					var crossDis = blockSize + blockGap;
+					var idx = (p.x - offset) / crossDis - 1;
+					var idy = (p.y - offset) / crossDis - 1;
+					plates[idx][idy] = p;
+					baffleplateHint.visible = false;
+					this.turnPlayer();
+					return;
+				}
+			} else {
+				baffleplateHint.visible = false;
+			}
+		}
+
+		var idx = this.calcBlockIdx(x);
+		var idy = this.calcBlockIdx(y);
+		if (pointer.isDown && this.calcBlockValid(idx, idy)) {
+			var crossDis = blockSize + blockGap;
+
+			players[currentIdx].sprite.x += crossDis
+					* (idx - players[currentIdx].x);
+			players[currentIdx].sprite.y += crossDis
+					* (idy - players[currentIdx].y);
+			players[currentIdx].x = idx;
+			players[currentIdx].y = idy;
+			if (this.checkWin()) {
+				// TODO handle with winner
+			} else {
+				this.turnPlayer();
+			}
 		}
 
 	} else {
@@ -205,11 +286,74 @@ Game.prototype.onMouseMoveCb = function(pointer, x, y) {
 }
 
 // -----------------------------------------------
+Game.prototype.calcBlockValid = function(idx, idy) {
+	// debugger
+	if (this.calcHintPlayer(idx, idy)) {
+		return false;
+	}
 
-Game.prototype.calcBlockPosition = function(x, y) {
+	var dx = idx - players[currentIdx].x;
+	var dy = idy - players[currentIdx].y;
+	if (Math.abs(dx) + Math.abs(dy) > 2) {
+		return false;
+	} else if (dx > 0) {
+		if (dy == 0) {
+			// TODO check plate
+			return true;
+		} else {
+
+		}
+		if (this.calcHintPlayer(idx - 1, idy)) {
+			// TODO check plate
+			return true;
+		} else {
+			return false;
+		}
+	} else if (dx < 0) {
+		if (this.calcHintPlayer(idx + 1, idy)) {
+			// TODO check plate
+			return true;
+		} else {
+			return false;
+		}
+	} else if (dy > 0) {
+		if (this.calcHintPlayer(idx, idy - 1)) {
+			// TODO check plate
+			return true;
+		} else {
+			return false;
+		}
+	} else if (dy < 0) {
+		if (this.calcHintPlayer(idx, idy + 1)) {
+			// TODO check plate
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+Game.prototype.calcBlockIdx = function(x, y) {
+	var offset = 2 * blockSize + blockGap;
+	var crossDis = blockSize + blockGap;
+	return Math.floor((x - offset) / crossDis);
+}
+
+Game.prototype.calcHintPlayer = function(idx, idy) {
+	for (var i = 0; i < players.length; i++) {
+		if (players[i].x == idx && players[i].y == idy) {
+			return true;
+		}
+	}
+	return false;
+}
+
+Game.prototype.calcBlockPosition = function(idx, idy) {
 	var r = [ 2 ];
-	r[0] = 2.5 * blockSize + x * (blockSize + blockGap) + blockGap;
-	r[1] = 2.5 * blockSize + y * (blockSize + blockGap) + blockGap;
+	r[0] = 2.5 * blockSize + idx * (blockSize + blockGap) + blockGap;
+	r[1] = 2.5 * blockSize + idy * (blockSize + blockGap) + blockGap;
 	return r;
 }
 
@@ -224,13 +368,71 @@ Game.prototype.calcInGamePanel = function(x, y) {
 }
 
 Game.prototype.calcInGap = function(x, y) {
-	var offset = 2 * blockSize + blockGap;
-	if (((x - offset) % (blockSize + blockGap) > blockSize)
-			^ ((y - offset) % (blockSize + blockGap) > blockSize)) {
+	if (this.calcInGapLine(x) ^ this.calcInGapLine(y)) {
 		return true;
 	} else {
 		return false;
 	}
+}
+
+Game.prototype.calcInGapCross = function(x, y) {
+	if (this.calcInGapLine(x) & this.calcInGapLine(y)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+Game.prototype.calcInGapLine = function(axis) {
+	var offset = 2 * blockSize + blockGap;
+	if (((axis - offset) % (blockSize + blockGap) > blockSize)) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+Game.prototype.calcNearestCross = function(x, y) {
+	var rx = this.calcNearestLine(x);
+	var ry = this.calcNearestLine(y);
+	var rh = !this.calcInGapLine(x);
+	return Plate.newInstance(rx, ry, rh);
+}
+
+Game.prototype.calcNearestLine = function(axis) {
+	var offset = 2 * blockSize + blockGap / 2;
+	var crossDis = blockSize + blockGap;
+	var axisDisCross = (axis - offset) % crossDis;
+	var r = axis - axisDisCross + (axisDisCross < crossDis / 2 ? 0 : crossDis);
+	if (r == offset) {
+		r += crossDis;
+	} else if (r == panelSize - offset) {
+		r -= crossDis;
+	}
+	return r;
+}
+
+Game.prototype.calcPlateValid = function(plate) {
+	var offset = 2 * blockSize + blockGap / 2;
+	var crossDis = blockSize + blockGap;
+	var idx = (plate.x - offset) / crossDis - 1;
+	var idy = (plate.y - offset) / crossDis - 1;
+	if (plate.h) {
+		if (idx > 0 && plates[idx - 1][idy] != null && plates[idx - 1][idy].h) {
+			return false;
+		}
+		if (idx < 7 && plates[idx + 1][idy] != null && plates[idx + 1][idy].h) {
+			return false;
+		}
+	} else {
+		if (idx > 0 && plates[idx][idy - 1] != null && !plates[idx][idy - 1].h) {
+			return false;
+		}
+		if (idx < 7 && plates[idx][idy + 1] != null && !plates[idx][idy + 1].h) {
+			return false;
+		}
+	}
+	return plates[idx][idy] == null;
 }
 
 // -----------------------------------------------
@@ -246,11 +448,32 @@ var Role = {
 		role.color = color;
 		role.baffleplates = [];
 		role.stopHint = function() {
-			role.hintTween.stop(true);
+			role.hintTween.pause();
+			role.sprite.scale.x = 1;
+			role.sprite.scale.y = 1;
 		};
 		role.startHint = function() {
-			role.hintTween.start();
+			if (role.hintTween.isPaused) {
+				role.hintTween.resume();
+			} else {
+				role.hintTween.start();
+			}
 		};
 		return role;
 	}
+};
+
+var Plate = {
+	newInstance : function(x, y, h) {
+		var plate = {};
+		plate.x = x;
+		plate.y = y;
+		plate.h = h;
+		plate.setupPlate = function(sprite) {
+			sprite.x = plate.x;
+			sprite.y = plate.y;
+			sprite.angle = plate.h ? 0 : 90;
+		}
+		return plate;
+	},
 };
